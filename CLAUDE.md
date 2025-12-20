@@ -44,7 +44,7 @@ This script retrieves overnight precipitation data and weather forecast from the
 2. **Edit `config.toml`** with your settings:
    - Location coordinates (latitude/longitude)
    - SMTP server credentials
-   - Email addresses (from address and list of recipient addresses)
+   - Email addresses (from address and list of recipient addresses via `to_emails`, or single recipient via `to_email` for backward compatibility)
    - Precipitation threshold (optional, defaults to 0.1 inches)
    - Hours to check (optional, defaults to 12 hours)
 

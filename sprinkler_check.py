@@ -176,7 +176,18 @@ def get_forecast(lat, lon):
 def send_email(config, subject, body):
     """Send email via SMTP"""
     email_config = config['email']
-    to_emails = email_config['to_emails']
+
+    # Support both old (to_email) and new (to_emails) format for backward compatibility
+    if 'to_emails' in email_config:
+        to_emails = email_config['to_emails']
+        if isinstance(to_emails, str):
+            # Handle case where to_emails is accidentally a string
+            to_emails = [to_emails]
+    elif 'to_email' in email_config:
+        # Old format: single email as string
+        to_emails = [email_config['to_email']]
+    else:
+        raise Exception("No recipient email configured. Use 'to_emails' (list) or 'to_email' (string) in config")
 
     msg = MIMEMultipart()
     msg['From'] = email_config['from_email']

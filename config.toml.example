@@ -12,7 +12,10 @@ smtp_password = "your-password"
 
 # Email addresses
 from_email = "your-email@example.com"
+# Use to_emails for multiple recipients (recommended)
 to_emails = ["recipient1@example.com", "recipient2@example.com"]
+# Or use to_email for a single recipient (backward compatible)
+# to_email = "recipient@example.com"
 
 [sprinkler]
 # Precipitation threshold in inches
