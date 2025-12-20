@@ -38,7 +38,7 @@ def load_config():
 def get_nws_observation_station(lat, lon):
     """Get the nearest NWS observation station for given coordinates"""
     points_url = f"https://api.weather.gov/points/{lat},{lon}"
-    headers = {"User-Agent": "SprinklerCheckScript/1.0"}
+    headers = {"User-Agent": "stu@stu.systems"}
 
     try:
         response = requests.get(points_url, headers=headers, timeout=10)
