@@ -1,0 +1,23 @@
+[location]
+# Your location coordinates (example: Seattle)
+latitude = 47.6062
+longitude = -122.3321
+
+[email]
+# SMTP server settings
+smtp_host = "smtp.example.com"
+smtp_port = 587
+smtp_username = "your-email@example.com"
+smtp_password = "your-password"
+
+# Email addresses
+from_email = "your-email@example.com"
+to_email = "recipient@example.com"
+
+[sprinkler]
+# Precipitation threshold in inches
+# Don't run sprinkler if precipitation exceeds this amount
+threshold = 0.1
+
+# Time period to check in hours
+hours_to_check = 12
