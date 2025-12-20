@@ -133,13 +133,54 @@ def get_precipitation_data(station_id, hours=12):
         raise Exception(f"Error fetching precipitation data: {e}")
 
 
+def get_forecast(lat, lon):
+    """Fetch daily forecast from NWS"""
+    points_url = f"https://api.weather.gov/points/{lat},{lon}"
+    headers = {"User-Agent": "SprinklerCheckScript/1.0"}
+
+    try:
+        # Get grid endpoint for forecast
+        response = requests.get(points_url, headers=headers, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+
+        forecast_url = data['properties']['forecast']
+
+        # Fetch forecast
+        forecast_response = requests.get(forecast_url, headers=headers, timeout=10)
+        forecast_response.raise_for_status()
+        forecast_data = forecast_response.json()
+
+        periods = forecast_data['properties']['periods']
+
+        if not periods:
+            return None
+
+        # Get today's forecast (first period is usually current day or tonight)
+        today = periods[0]
+
+        return {
+            'name': today['name'],
+            'temperature': today['temperature'],
+            'temperature_unit': today['temperatureUnit'],
+            'wind_speed': today['windSpeed'],
+            'wind_direction': today['windDirection'],
+            'short_forecast': today['shortForecast'],
+            'detailed_forecast': today['detailedForecast']
+        }
+
+    except requests.exceptions.RequestException as e:
+        raise Exception(f"Error fetching forecast: {e}")
+
+
 def send_email(config, subject, body):
     """Send email via SMTP"""
     email_config = config['email']
+    to_emails = email_config['to_emails']
 
     msg = MIMEMultipart()
     msg['From'] = email_config['from_email']
-    msg['To'] = email_config['to_email']
+    msg['To'] = ', '.join(to_emails)
     msg['Subject'] = subject
 
     msg.attach(MIMEText(body, 'plain'))
@@ -149,7 +190,7 @@ def send_email(config, subject, body):
             server.starttls()
             server.login(email_config['smtp_username'], email_config['smtp_password'])
             server.send_message(msg)
-        print(f"Email sent successfully to {email_config['to_email']}")
+        print(f"Email sent successfully to {len(to_emails)} recipient(s): {', '.join(to_emails)}")
     except Exception as e:
         raise Exception(f"Error sending email: {e}")
 
@@ -178,6 +219,10 @@ def main():
         # Get precipitation data
         precip_data = get_precipitation_data(station_id, hours_to_check)
 
+        # Get forecast
+        print("Fetching forecast...")
+        forecast = get_forecast(latitude, longitude)
+
         # Determine sprinkler recommendation
         total_precip = precip_data['total_inches']
         if total_precip >= threshold:
@@ -194,6 +239,17 @@ def main():
 
         daily_totals_text = "\n".join(daily_summary) if daily_summary else "  No data available"
 
+        # Format forecast
+        if forecast:
+            forecast_text = f"""{forecast['name'].upper()}:
+  Temperature: {forecast['temperature']}°{forecast['temperature_unit']}
+  Wind: {forecast['wind_speed']} {forecast['wind_direction']}
+  Conditions: {forecast['short_forecast']}
+
+  {forecast['detailed_forecast']}"""
+        else:
+            forecast_text = "  Forecast unavailable"
+
         # Build email body
         email_body = f"""Overnight Precipitation Report
 {'=' * 50}
@@ -207,6 +263,9 @@ PRECIPITATION TOTAL:
 
 RUN SPRINKLER TODAY?
   {emoji} {recommendation}
+
+FORECAST:
+{forecast_text}
 
 LAST 7 DAYS (Daily Totals):
 {daily_totals_text}

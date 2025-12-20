@@ -1,7 +1,7 @@
 # Overnight Precipitation Alert Script
 
 ## Overview
-This script retrieves overnight precipitation data from the National Weather Service (NWS) and sends an email summary to help you decide whether to run your sprinkler system.
+This script retrieves overnight precipitation data and weather forecast from the National Weather Service (NWS) and sends an email summary to help you decide whether to run your sprinkler system.
 
 ## Components
 
@@ -30,8 +30,9 @@ This script retrieves overnight precipitation data from the National Weather Ser
 ## How It Works
 1. Fetches recent precipitation data from NWS for your location
 2. Calculates total overnight precipitation
-3. Sends an email with the results
-4. Can be scheduled to run automatically (e.g., via cron)
+3. Retrieves the weather forecast for the upcoming day
+4. Sends an email with the results to multiple recipients
+5. Can be scheduled to run automatically (e.g., via cron)
 
 ## Setup Required
 
@@ -43,7 +44,7 @@ This script retrieves overnight precipitation data from the National Weather Ser
 2. **Edit `config.toml`** with your settings:
    - Location coordinates (latitude/longitude)
    - SMTP server credentials
-   - Email addresses (from/to)
+   - Email addresses (from address and list of recipient addresses)
    - Precipitation threshold (optional, defaults to 0.1 inches)
    - Hours to check (optional, defaults to 12 hours)
 
