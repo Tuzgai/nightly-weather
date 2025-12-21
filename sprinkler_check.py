@@ -123,7 +123,7 @@ def get_precipitation_data(station_id, hours=12):
         return {
             'total_mm': round(total_precip_mm, 2),
             'total_inches': round(total_precip_inches, 2),
-            'hours_of_rain': observation_count,
+            'observation_count': observation_count,
             'latest_observation': latest_observation,
             'station_id': station_id,
             'daily_totals': daily_totals_inches
@@ -283,7 +283,7 @@ LAST 7 DAYS (Daily Totals):
 
 Details:
   - Threshold: {threshold} inches
-  - Observations processed: {precip_data['observation_count']}
+  - Hours of precipitation: {precip_data['observation_count']}
   - Latest observation: {precip_data['latest_observation']}
 
 {'=' * 50}
