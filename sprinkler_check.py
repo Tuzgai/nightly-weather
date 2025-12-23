@@ -160,19 +160,19 @@ def get_pressure_data(station_id):
             pressure = obs['properties'].get('barometricPressure', {})
             if pressure and pressure.get('value') is not None:
                 pressure_pa = pressure['value']
-                # Convert Pascals to inches of mercury (1 Pa = 0.0002953 inHg)
-                pressure_inhg = pressure_pa * 0.0002953
+                # Convert Pascals to hectopascals (1 hPa = 100 Pa)
+                pressure_hpa = pressure_pa / 100
 
                 # Get most recent pressure (current)
                 if current_pressure is None:
-                    current_pressure = pressure_inhg
+                    current_pressure = pressure_hpa
                     current_time = obs_time
 
                 # Get pressure from approximately 24 hours ago
                 time_diff = abs((obs_time - yesterday.astimezone()).total_seconds())
                 if time_diff < 3600:  # Within 1 hour of 24 hours ago
                     if yesterday_pressure is None or time_diff < abs((yesterday_time - yesterday.astimezone()).total_seconds()):
-                        yesterday_pressure = pressure_inhg
+                        yesterday_pressure = pressure_hpa
                         yesterday_time = obs_time
 
         if current_pressure and yesterday_pressure:
@@ -181,9 +181,9 @@ def get_pressure_data(station_id):
             pressure_change = None
 
         return {
-            'current_pressure': round(current_pressure, 2) if current_pressure else None,
-            'yesterday_pressure': round(yesterday_pressure, 2) if yesterday_pressure else None,
-            'pressure_change': round(pressure_change, 2) if pressure_change else None,
+            'current_pressure': round(current_pressure, 1) if current_pressure else None,
+            'yesterday_pressure': round(yesterday_pressure, 1) if yesterday_pressure else None,
+            'pressure_change': round(pressure_change, 1) if pressure_change else None,
             'current_time': current_time,
             'yesterday_time': yesterday_time
         }
@@ -314,8 +314,8 @@ def main():
         daily_totals_text = "\n".join(daily_summary) if daily_summary else "  No data available"
 
         # Format barometric pressure information
-        # Get threshold from config, default to 0.10 inHg if not specified
-        pressure_threshold = sprinkler.get('pressure_change_threshold', 0.10)
+        # Get threshold from config, default to 6 hPa if not specified
+        pressure_threshold = sprinkler.get('pressure_change_threshold', 6)
 
         if pressure_data['current_pressure'] and pressure_data['pressure_change'] is not None:
             change = pressure_data['pressure_change']
@@ -334,9 +334,9 @@ def main():
                 else:
                     trend = "falling slightly"
 
-            pressure_text = f"""  Current: {pressure_data['current_pressure']:.2f} inHg
-  24h ago: {pressure_data['yesterday_pressure']:.2f} inHg
-  Change: {change:+.2f} inHg ({significance} - {trend})"""
+            pressure_text = f"""  Current: {pressure_data['current_pressure']:.1f} hPa
+  24h ago: {pressure_data['yesterday_pressure']:.1f} hPa
+  Change: {change:+.1f} hPa ({significance} - {trend})"""
         else:
             pressure_text = "  Data unavailable"
 
