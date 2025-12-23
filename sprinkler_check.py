@@ -133,6 +133,65 @@ def get_precipitation_data(station_id, hours=12):
         raise Exception(f"Error fetching precipitation data: {e}")
 
 
+def get_pressure_data(station_id):
+    """Fetch barometric pressure observations from NWS station"""
+    observations_url = f"https://api.weather.gov/stations/{station_id}/observations"
+    headers = {"User-Agent": "SprinklerCheckScript/1.0"}
+
+    try:
+        response = requests.get(observations_url, headers=headers, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+
+        observations = data['features']
+        now = datetime.now()
+        yesterday = now - timedelta(days=1)
+
+        current_pressure = None
+        yesterday_pressure = None
+        current_time = None
+        yesterday_time = None
+
+        for obs in observations:
+            obs_time_str = obs['properties']['timestamp']
+            obs_time = datetime.fromisoformat(obs_time_str.replace('Z', '+00:00'))
+
+            # Get barometric pressure
+            pressure = obs['properties'].get('barometricPressure', {})
+            if pressure and pressure.get('value') is not None:
+                pressure_pa = pressure['value']
+                # Convert Pascals to inches of mercury (1 Pa = 0.0002953 inHg)
+                pressure_inhg = pressure_pa * 0.0002953
+
+                # Get most recent pressure (current)
+                if current_pressure is None:
+                    current_pressure = pressure_inhg
+                    current_time = obs_time
+
+                # Get pressure from approximately 24 hours ago
+                time_diff = abs((obs_time - yesterday.astimezone()).total_seconds())
+                if time_diff < 3600:  # Within 1 hour of 24 hours ago
+                    if yesterday_pressure is None or time_diff < abs((yesterday_time - yesterday.astimezone()).total_seconds()):
+                        yesterday_pressure = pressure_inhg
+                        yesterday_time = obs_time
+
+        if current_pressure and yesterday_pressure:
+            pressure_change = current_pressure - yesterday_pressure
+        else:
+            pressure_change = None
+
+        return {
+            'current_pressure': round(current_pressure, 2) if current_pressure else None,
+            'yesterday_pressure': round(yesterday_pressure, 2) if yesterday_pressure else None,
+            'pressure_change': round(pressure_change, 2) if pressure_change else None,
+            'current_time': current_time,
+            'yesterday_time': yesterday_time
+        }
+
+    except requests.exceptions.RequestException as e:
+        raise Exception(f"Error fetching pressure data: {e}")
+
+
 def get_forecast(lat, lon):
     """Fetch daily forecast from NWS"""
     points_url = f"https://api.weather.gov/points/{lat},{lon}"
@@ -230,6 +289,10 @@ def main():
         # Get precipitation data
         precip_data = get_precipitation_data(station_id, hours_to_check)
 
+        # Get barometric pressure data
+        print("Fetching barometric pressure data...")
+        pressure_data = get_pressure_data(station_id)
+
         # Get forecast
         print("Fetching forecast...")
         forecast = get_forecast(latitude, longitude)
@@ -249,6 +312,33 @@ def main():
             daily_summary.append(f"  {date.strftime('%Y-%m-%d (%a)')}: {inches:.2f} inches")
 
         daily_totals_text = "\n".join(daily_summary) if daily_summary else "  No data available"
+
+        # Format barometric pressure information
+        # Get threshold from config, default to 0.10 inHg if not specified
+        pressure_threshold = sprinkler.get('pressure_change_threshold', 0.10)
+
+        if pressure_data['current_pressure'] and pressure_data['pressure_change'] is not None:
+            change = pressure_data['pressure_change']
+            abs_change = abs(change)
+
+            if abs_change >= pressure_threshold:
+                significance = "SIGNIFICANT"
+                if change > 0:
+                    trend = "rising (improving weather likely)"
+                else:
+                    trend = "falling (worsening weather possible)"
+            else:
+                significance = "normal"
+                if change > 0:
+                    trend = "rising slightly"
+                else:
+                    trend = "falling slightly"
+
+            pressure_text = f"""  Current: {pressure_data['current_pressure']:.2f} inHg
+  24h ago: {pressure_data['yesterday_pressure']:.2f} inHg
+  Change: {change:+.2f} inHg ({significance} - {trend})"""
+        else:
+            pressure_text = "  Data unavailable"
 
         # Format forecast
         if forecast:
@@ -274,6 +364,9 @@ PRECIPITATION TOTAL:
 
 RUN SPRINKLER TODAY?
   {emoji} {recommendation}
+
+BAROMETRIC PRESSURE (24-hour change):
+{pressure_text}
 
 FORECAST:
 {forecast_text}

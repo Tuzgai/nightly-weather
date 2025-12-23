@@ -24,3 +24,8 @@ threshold = 0.1
 
 # Time period to check in hours
 hours_to_check = 12
+
+# Barometric pressure change threshold in inches of mercury (inHg)
+# Changes >= this value are considered "significant" (optional, defaults to 0.10)
+# Typical significant changes: 0.10-0.15 inHg over 24 hours
+pressure_change_threshold = 0.10
