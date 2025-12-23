@@ -321,22 +321,22 @@ def main():
             change = pressure_data['pressure_change']
             abs_change = abs(change)
 
-            if abs_change >= pressure_threshold:
+            # Pressure drops are more significant than pressure rises
+            if abs_change >= pressure_threshold and change > 0:
                 significance = "SIGNIFICANT"
-                if change > 0:
-                    trend = "rising (improving weather likely)"
-                else:
-                    trend = "falling (worsening weather possible)"
+                trend = "falling"
             else:
                 significance = "normal"
                 if change > 0:
-                    trend = "rising slightly"
+                    trend = "rising"
                 else:
                     trend = "falling slightly"
 
             pressure_text = f"""  Current: {pressure_data['current_pressure']:.1f} hPa
   24h ago: {pressure_data['yesterday_pressure']:.1f} hPa
-  Change: {change:+.1f} hPa ({significance} - {trend})"""
+  Change: {change:+.1f} hPa ({significance} - {trend})
+  Migraines are commonly triggered with pressures <1007 hPa or changes >6 hPa.
+  """
         else:
             pressure_text = "  Data unavailable"
 
@@ -387,7 +387,7 @@ Generated at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         print("\n" + email_body)
 
         # Send email
-        subject = f"Sprinkler Check: {recommendation}"
+        subject = f"Weather update!"
         send_email(config, subject, email_body)
 
         print("\nScript completed successfully!")
@@ -399,7 +399,7 @@ Generated at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         # Try to send error email
         try:
             config = load_config()
-            send_email(config, "Sprinkler Check - ERROR", error_msg)
+            send_email(config, "Weather update - ERROR", error_msg)
         except:
             print("Failed to send error notification email")
 
