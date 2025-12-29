@@ -322,7 +322,7 @@ def main():
             abs_change = abs(change)
 
             # Pressure drops are more significant than pressure rises
-            if abs_change >= pressure_threshold and change > 0:
+            if abs_change >= pressure_threshold and change < 0:
                 significance = "SIGNIFICANT"
                 trend = "falling"
             else:
