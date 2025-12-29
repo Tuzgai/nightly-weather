@@ -66,7 +66,7 @@ def get_nws_observation_station(lat, lon):
 def get_precipitation_data(station_id, hours=12):
     """Fetch precipitation observations from NWS station"""
     observations_url = f"https://api.weather.gov/stations/{station_id}/observations"
-    headers = {"User-Agent": "SprinklerCheckScript/1.0"}
+    headers = {"User-Agent": "stu@stu.systems"}
 
     try:
         response = requests.get(observations_url, headers=headers, timeout=10)
