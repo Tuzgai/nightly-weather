@@ -17,6 +17,8 @@ from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta
 import tomllib
 from pathlib import Path
+import time
+from functools import wraps
 
 # ============ CONFIGURATION ============
 
@@ -35,6 +37,36 @@ def load_config():
 
 # ============ SCRIPT ============
 
+def retry_nws_call(max_attempts=3, delays=(300, 600)):
+    """
+    Retry decorator for NWS API calls
+
+    Args:
+        max_attempts: Maximum number of attempts (default: 3)
+        delays: Tuple of delays in seconds between retries (default: 5 min, 10 min)
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            for attempt in range(1, max_attempts + 1):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    if attempt == max_attempts:
+                        # Last attempt failed, re-raise the exception
+                        raise
+
+                    # Calculate delay for this attempt
+                    delay = delays[attempt - 1] if attempt - 1 < len(delays) else delays[-1]
+                    print(f"Attempt {attempt} failed: {e}")
+                    print(f"Retrying in {delay / 60:.1f} minutes...")
+                    time.sleep(delay)
+
+        return wrapper
+    return decorator
+
+
+@retry_nws_call()
 def get_nws_observation_station(lat, lon):
     """Get the nearest NWS observation station for given coordinates"""
     points_url = f"https://api.weather.gov/points/{lat},{lon}"
@@ -63,6 +95,7 @@ def get_nws_observation_station(lat, lon):
         raise Exception(f"Error fetching NWS station: {e}")
 
 
+@retry_nws_call()
 def get_precipitation_data(station_id, hours=12):
     """Fetch precipitation observations from NWS station"""
     observations_url = f"https://api.weather.gov/stations/{station_id}/observations"
@@ -133,6 +166,7 @@ def get_precipitation_data(station_id, hours=12):
         raise Exception(f"Error fetching precipitation data: {e}")
 
 
+@retry_nws_call()
 def get_pressure_data(station_id):
     """Fetch barometric pressure observations from NWS station"""
     observations_url = f"https://api.weather.gov/stations/{station_id}/observations"
@@ -192,6 +226,7 @@ def get_pressure_data(station_id):
         raise Exception(f"Error fetching pressure data: {e}")
 
 
+@retry_nws_call()
 def get_forecast(lat, lon):
     """Fetch daily forecast from NWS"""
     points_url = f"https://api.weather.gov/points/{lat},{lon}"
